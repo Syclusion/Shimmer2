@@ -61,4 +61,6 @@ public interface MixinPluginShared {
 	boolean IS_IRIS_LOAD = isClassFound("net.coderbot.iris.compat.sodium.mixin.IrisSodiumCompatMixinPlugin");
 	boolean IS_OCULUS_LOAD = IS_IRIS_LOAD;
 
+	boolean IS_VS2_LOAD = isClassFound("org.valkyrienskies.mod.common.VSGameUtilsKt");
+
 }

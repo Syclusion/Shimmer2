@@ -49,8 +49,17 @@ dependencies {
     forgeRuntimeLibrary("icyllis.modernui:ModernUI-Core:$modernui_core_version")
     modCompileOnly("icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_version}")
 
-    modImplementation("maven.modrinth:embeddium:0.3.4+mc1.20.1")
+    modImplementation("maven.modrinth:embeddium:0.3.31+mc1.20.1")
     modImplementation("maven.modrinth:oculus:1.20.1-1.7.0")
+
+    // Embeddium's dev jar references a small subset of Fabric API interfaces (jar-in-jar at runtime),
+    // but they are not visible on the compile classpath. A stub FabricBlockView interface is provided
+    // under Forge/src/main/java/net/fabricmc/... to satisfy the compiler.
+
+    // Valkyrien Skies 2 (compile-only for ship lighting compat)
+    modCompileOnly("maven.modrinth:valkyrien-skies:$vs2_forge_version")
+    compileOnly("org.valkyrienskies.core:api:$vs_core_version")
+    compileOnly("org.valkyrienskies.core:util:$vs_core_version")
 
 }
 
@@ -65,6 +74,7 @@ tasks.processResources {
 tasks.shadowJar {
     exclude("fabric.mod.json")
     exclude("architectury.common.json")
+    exclude("net/fabricmc/**")
 
     configurations = listOf(shadowCommon)
 
@@ -80,6 +90,7 @@ tasks.remapJar {
 
 tasks.jar {
     archiveClassifier.set("dev")
+    exclude("net/fabricmc/**")
 }
 
 tasks.sourcesJar {

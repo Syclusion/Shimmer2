@@ -133,7 +133,13 @@ public enum LightManager {
                  """).toString();
         s = new StringBuffer(s).insert(s.lastIndexOf("void main()"), getLightShader()).toString();
         s = new StringBuffer(s).insert(s.lastIndexOf('}'), Services.PLATFORM.useLightMap() ? """
-                    v_Color = color_light_uv(position, v_Color, ivec2(_vert_tex_light_coord) * 16 ).rgba;
+                    // Embeddium's _vert_tex_light_coord has historically been either 0..15 (needs *16) or already 0..255.
+                    // Detect at runtime in GLSL so this works across Embeddium 0.3.x variants (including 0.3.31).
+                    ivec2 shimmer_uv = ivec2(_vert_tex_light_coord);
+                    if (shimmer_uv.x <= 15 && shimmer_uv.y <= 15) {
+                        shimmer_uv *= 16;
+                    }
+                    v_Color = color_light_uv(position, v_Color, shimmer_uv).rgba;
                 """ : """
                     v_Color = color_light(position, v_Color * 16).rgba;
                 """).toString();
@@ -142,6 +148,29 @@ public enum LightManager {
                 """).toString();
         return s;
     }
+
+    /**
+     * Sodium 0.5.x (including 0.5.2+ and 0.5.13) uses normalized lightmap UVs in _vert_tex_light_coord (0..1).
+     * Convert back to 0..255 coordinates before feeding into shimmer.glsl.
+     */
+    public static String sodiumVVSHInjection(String s) {
+        s = new StringBuffer(s).insert(s.lastIndexOf("out vec2 v_TexCoord;"), """
+                 out float isBloom;
+                 """).toString();
+        s = new StringBuffer(s).insert(s.lastIndexOf("void main()"), getLightShader()).toString();
+        s = new StringBuffer(s).insert(s.lastIndexOf('}'), Services.PLATFORM.useLightMap() ? """
+                    // Sodium provides normalized lightmap UVs (0..1). Convert to 0..255 integer coords for shimmer.glsl.
+                    ivec2 shimmer_uv = ivec2(_vert_tex_light_coord * 256.0);
+                    v_Color = color_light_uv(position, v_Color, shimmer_uv).rgba;
+                """ : """
+                    v_Color = color_light(position, v_Color).rgba;
+                """).toString();
+        s = new StringBuffer(s).insert(s.lastIndexOf("}"), """
+                isBloom = ((_material_params >> 4u) & 0x01u) > 0u ? 256.0 : 0.0;
+                """).toString();
+        return s;
+    }
+
 
     public void bindRbProgram(int programID) {
         lightUBO.bindToShader(programID, "Lights");
